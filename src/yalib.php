@@ -14,12 +14,12 @@ namespace Yousan\yalib;
 class yalib {
 	private static $instance = array();
 
-	/** @type PDO */
+	/** @type \PDO */
 	private $pdo = false;
 
 	private $conf = false;
 
-	/** @var  PDOStatement */
+	/** @var  \PDOStatement */
 	private $stmt = false;
 
 	private $inLoop = false;
@@ -110,7 +110,7 @@ class yalib {
 	 *
 	 * @param optional string $confname
 	 * @return yalib
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	private function _loadConfig($confname = '') {
 		$config = parse_ini_file(dirname(__FILE__).'/config.ini', true);
@@ -121,7 +121,7 @@ class yalib {
 			$this->conf = $config[$confname];
 		}
 		else if ($confname !== false && !isset($config[$confname])) {
-	    throw new Exception('$confname is not found');
+	    throw new \Exception('$confname is not found');
 		}
 		else {
 			$this->conf = $config['default'];
@@ -149,21 +149,21 @@ class yalib {
 
 	/**
 	 * @param $e
-	 * @throws Exception
+	 * @throws \Exception
 	 */
-	private function _errorHandle(Exception $e){
+	private function _errorHandle(\Exception $e){
 	  $this->_setBoundSql();
 	  $msg = $e->getMessage().PHP_EOL.
 	  'Error happend.' . PHP_EOL .
 	  $this->getBoundSQL() . PHP_EOL;
-	  throw new Exception($msg);
+	  throw new \Exception($msg);
 	}
 
 	/**
 	 * データベースへの接続
 	 *
 	 * @return yalib
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	private function _connect() {
 		if ($this->pdo === false) {
@@ -175,8 +175,8 @@ class yalib {
 					$this->conf['username'],
 					$this->conf['password']
 				);
-			} catch(PDOException $e) {
-				throw new Exception($e->getMessage());
+			} catch(\PDOException $e) {
+				throw new \Exception($e->getMessage());
 			}
 		}
 		return $this;
@@ -190,11 +190,11 @@ class yalib {
 	 */
 	private function _setBoundSql(){
 		foreach($this->boundValues as $key => $bv) { // bv=>boundValue
-			if((isset($bv['type']) && $bv['type'] == PDO::PARAM_INT) ||
+			if((isset($bv['type']) && $bv['type'] == \PDO::PARAM_INT) ||
 				 (isset($bv['value']) && is_numeric($bv['value']))) {
 				$value = $bv['value'];
 			}
-			else if((isset($bv['type']) && $bv['type'] == PDO::PARAM_STR) ||
+			else if((isset($bv['type']) && $bv['type'] == \PDO::PARAM_STR) ||
 							(isset($bv['value']) && is_string($bv['value']))) {
 				$value = "'".$bv['value']."'";
 			}
@@ -208,11 +208,11 @@ class yalib {
 	}
 
 	/**
-	 * PDOのprepareを実行する
+	 * \PDOのprepareを実行する
 	 *
 	 * @param string $query
 	 * @return yalib
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function prepare($query) {
 	  if($this->inLoop && $this->preparedSql == $query){
@@ -223,8 +223,8 @@ class yalib {
 	    $this->stmt = false;
 	    try {
 	      $this->stmt = $this->pdo->prepare($query);
-	    } catch(PDOException $e) {
-	      throw new Exception($e->getMessage());
+	    } catch(\PDOException $e) {
+	      throw new \Exception($e->getMessage());
 	    }
 	  }
 	  return $this;
@@ -235,7 +235,7 @@ class yalib {
 	 *
 	 * @param $query
 	 * @return yalib
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function p($query) {
 		return $this->prepare($query);
@@ -264,16 +264,16 @@ class yalib {
 	 *
 	 * @param array $values
 	 * @return yalib
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function bindValues($values) {
 	  if (!is_array($values)) {
-	    throw new Exception('$values is not an array');
+	    throw new \Exception('$values is not an array');
 	  }
 	  foreach ($values as $key => $val) {
 	    $key = $this->_insertColon($key);
 	    if (false === $this->stmt->bindValue($key, $val)) {
-	      throw new Exception('bindValue failed');
+	      throw new \Exception('bindValue failed');
 	    }
 	    $this->boundValues[] = array
 	      ('key' => $this->_insertColon($key),
@@ -304,7 +304,7 @@ class yalib {
 	 * @param bool $arg2
 	 * @param bool $arg3
 	 * @return yalib
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function bv($arg1, $arg2 = false, $arg3 = false) {
 		if (is_array($arg1)) {
@@ -322,12 +322,12 @@ class yalib {
 	 * @return yalib
 	 */
 	public function setQueryBuffer($value) {
-		$this->setPDOAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, $value);
+		$this->setPDOAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, $value);
 		return $this;
 	}
 
 	/**
-	 * PDOのATTRを設定する
+	 * \PDOのATTRを設定する
 	 *
 	 * @param int $attr
 	 * @param mixed $value
@@ -344,23 +344,23 @@ class yalib {
 	 *
 	 * @param string $query
 	 * @return mixed
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function fetchQuery($query) {
 		try {
 			if ($this->inLoop === false) {
 				$this->prepare($query);
 				if (false === $this->stmt->execute()) {
-					throw new Exception(print_r($this->stmt->errorInfo(), true));
+					throw new \Exception(print_r($this->stmt->errorInfo(), true));
 				}
 				$this->inLoop = true;
 			}
-			if (false === ($row = $this->stmt->fetch(PDO::FETCH_ASSOC))) {
+			if (false === ($row = $this->stmt->fetch(\PDO::FETCH_ASSOC))) {
 				$this->inLoop = false;
 			}
 			return $row;
-		} catch(PDOException $e) {
-			throw new Exception($e->getMessage());
+		} catch(\PDOException $e) {
+			throw new \Exception($e->getMessage());
 		}
 	}
 
@@ -370,18 +370,18 @@ class yalib {
 	 *
 	 * @param string $query
 	 * @return array
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function fetchAllQuery($query) {
 		try {
 			$this->prepare($query);
 			if (false === $this->stmt->execute()) {
-				throw new Exception(print_r($this->stmt->errorInfo(), true));
+				throw new \Exception(print_r($this->stmt->errorInfo(), true));
 			}
-			$rows = $this->stmt->fetchAll(PDO::FETCH_ASSOC);
+			$rows = $this->stmt->fetchAll(\PDO::FETCH_ASSOC);
 			return $rows;
-		} catch(PDOException $e) {
-			throw new Exception($e->getMessage());
+		} catch(\PDOException $e) {
+			throw new \Exception($e->getMessage());
 		}
 	}
 
@@ -393,7 +393,7 @@ class yalib {
 	 * @param bool $arg2
 	 * @param bool $arg3
 	 * @return mixed
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function fetch($arg1 = false, $arg2 = false, $arg3 = false) {
 	  if(false !== $arg1){
@@ -402,16 +402,16 @@ class yalib {
 		try {
 			if ($this->inLoop === false) {
 				if (false === $this->execute()) {
-					throw new Exception(print_r($this->stmt->errorInfo(), true));
+					throw new \Exception(print_r($this->stmt->errorInfo(), true));
 				}
 				$this->inLoop = true;
 			}
-			if (false === ($row = $this->stmt->fetch(PDO::FETCH_ASSOC))){
+			if (false === ($row = $this->stmt->fetch(\PDO::FETCH_ASSOC))){
 				$this->inLoop = false;
 			}
 			return $row;
-		} catch(PDOException $e) {
-			throw new Exception($e->getMessage());
+		} catch(\PDOException $e) {
+			throw new \Exception($e->getMessage());
 		}
 	}
 
@@ -423,7 +423,7 @@ class yalib {
 	 * @param bool $arg2
 	 * @param bool $arg3
 	 * @return mixed
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function f($arg1 = false, $arg2 = false, $arg3 = false) {
 	  return $this->fetch($arg1, $arg2, $arg3);
@@ -437,7 +437,7 @@ class yalib {
 	 * @param bool $arg2
 	 * @param bool $arg3
 	 * @return mixed
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function fetchAll($arg1 = false, $arg2 = false, $arg3 = false) {
 	  if(false !== $arg1){
@@ -445,12 +445,12 @@ class yalib {
 	  }
 		try {
 			if (false === $this->execute()) {
-				throw new Exception(print_r($this->stmt->errorInfo(), true));
+				throw new \Exception(print_r($this->stmt->errorInfo(), true));
 			}
-			$rows = $this->stmt->fetchAll(PDO::FETCH_ASSOC);
+			$rows = $this->stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-		} catch(PDOException $e) {
-			throw new Exception($e->getMessage());
+		} catch(\PDOException $e) {
+			throw new \Exception($e->getMessage());
 		}
 		return $rows;
 	}
@@ -463,7 +463,7 @@ class yalib {
 	 * @param bool $arg2
 	 * @param bool $arg3
 	 * @return mixed
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function fa($arg1 = false, $arg2 = false, $arg3 = false) {
 	  return $this->fetchAll($arg1, $arg2, $arg3);
@@ -474,15 +474,15 @@ class yalib {
 	 *
 	 * @param string $query
 	 * @return yalib
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function query($query) {
 		try {
 			$this->prepare($query);
 			if (false === $this->stmt->execute()) {
-				throw new Exception(print_r($this->stmt->errorInfo(), true));
+				throw new \Exception(print_r($this->stmt->errorInfo(), true));
 			}
-		} catch(PDOExeption $e) {
+		} catch(\PDOExeption $e) {
 			throw new Exception($e->getMessage());
 		}
 		return $this;
@@ -503,7 +503,7 @@ class yalib {
 	 * @param bool $arg2
 	 * @param bool $arg3
 	 * @return yalib
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function execute($arg1 = false, $arg2 = false, $arg3 = false) {
 	  if (false !== $arg1) {
@@ -511,10 +511,10 @@ class yalib {
 	  }
 		try {
 			if (false === $this->stmt->execute()) {
-			  $this->_errorHandle(new Exception(print_r($this->stmt->errorInfo(), true)));
+			  $this->_errorHandle(new \Exception(print_r($this->stmt->errorInfo(), true)));
 			}
-		} catch(PDOExeption $e) {
-		  throw new Exception($e->getMessage());
+		} catch(\PDOExeption $e) {
+		  throw new \Exception($e->getMessage());
 		}
 		$this->_setBoundSql();
 		return $this;
@@ -528,7 +528,7 @@ class yalib {
 	 * @param bool $arg2
 	 * @param bool $arg3
 	 * @return yalib
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public function e($arg1 = false, $arg2 = false, $arg3 = false) {
 	  return $this->execute($arg1, $arg2, $arg3);
