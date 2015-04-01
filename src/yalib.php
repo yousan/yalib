@@ -10,9 +10,15 @@
  */
 class yalib {
 	private static $instance = array();
+
+	/** @type PDO */
 	private $pdo = false;
+
 	private $conf = false;
+
+	/** @var  PDOStatement */
 	private $stmt = false;
+
 	private $inLoop = false;
 	private $preparedSql = '';
 	private $boundSql = '';
@@ -23,31 +29,34 @@ class yalib {
 	  $confname = $confname ? $confname : 'default';
 	  return new yalib($confname);
 	}
-	
+
 	/**
 	 * シングルトンインスタンスの生成
-	 * @param optional string $confname
-	 * @return instance
+	 * @param String $confname
+	 * @return yalib
 	 */
-	public static function getInstance($confname = false){
+	public static function getInstance($confname = ''){
 		$confname = $confname ? $confname : 'default';
 		if (!isset(yalib::$instance[$confname])) {
 			self::$instance[$confname] = new yalib($confname, 'confname');
 		}
 		return self::$instance[$confname];
 	}
-	
+
 	/**
 	 * getInstance() の短縮名
+	 * @param string $confname
+	 * @return yalib
+	 * @internal param $
 	 */
-	public static function gi($confname = false) {
+	public static function gi($confname = '') {
 		return self::getInstance($confname);
 	}
 
 	/**
 	 * DSN表記によるシングルトンインスタンス生成
 	 * @param string $dsn
-	 * @return instance
+	 * @return yalib
 	 */
 	public static function getInstanceByDsn($dsn) {
 		$keyname = 'dsn_'.md5($dsn);
@@ -59,6 +68,9 @@ class yalib {
 
 	/**
 	 * getInstanceByDsn() の短縮名
+	 *
+	 * @param string $dsn
+	 * @return yalib
 	 */
 	public static function giDsn($dsn) {
 		return self::getInstanceByDsn($dsn);
@@ -69,6 +81,7 @@ class yalib {
 	 * $config は config.iniのセクション名
 	 * 又は DSN文字列
 	 * $confType にはconfname又はdsnを渡す
+	 *
 	 * @param string $conf
 	 * @param string $confType
 	 */
@@ -91,10 +104,12 @@ class yalib {
 	/**
 	 * 設定ファイルのロード
 	 * $confname に該当するiniのセクションが無ければ例外を投げる
+	 *
 	 * @param optional string $confname
-	 * @return selfObject
+	 * @return yalib
+	 * @throws Exception
 	 */
-	private function _loadConfig($confname = false) {
+	private function _loadConfig($confname = '') {
 		$config = parse_ini_file(dirname(__FILE__).'/config.ini', true);
 		if ($confname && isset($config[$confname])) {
 			foreach ($config[$confname] as $key => $val) {
@@ -113,7 +128,9 @@ class yalib {
 
 	/**
 	 * DSNをConfig形式に直す
-	 * @return selfObject
+	 *
+	 * @param string $dsn
+	 * @return yalib
 	 */
 	private function _dsnToConfig($dsn) {
 		$tmp = parse_url($dsn);
@@ -127,17 +144,23 @@ class yalib {
 		return $this;
 	}
 
-	private function _errorHandle($e){
+	/**
+	 * @param $e
+	 * @throws Exception
+	 */
+	private function _errorHandle(Exception $e){
 	  $this->_setBoundSql();
 	  $msg = $e->getMessage().PHP_EOL.
 	  'Error happend.' . PHP_EOL .
 	  $this->getBoundSQL() . PHP_EOL;
 	  throw new Exception($msg);
 	}
-	
+
 	/**
 	 * データベースへの接続
-	 * @return selfObject
+	 *
+	 * @return yalib
+	 * @throws Exception
 	 */
 	private function _connect() {
 		if ($this->pdo === false) {
@@ -159,7 +182,8 @@ class yalib {
 	/**
 	 * メンバ変数のboundSqlをセットする
 	 * executeが呼ばれた時にこの関数でセットするのが好ましい
-	 * @return selfObject
+	 *
+	 * @return yalib
 	 */
 	private function _setBoundSql(){
 		foreach($this->boundValues as $key => $bv) { // bv=>boundValue
@@ -182,8 +206,10 @@ class yalib {
 
 	/**
 	 * PDOのprepareを実行する
+	 *
 	 * @param string $query
-	 * @return selfObject
+	 * @return yalib
+	 * @throws Exception
 	 */
 	public function prepare($query) {
 	  if($this->inLoop && $this->preparedSql == $query){
@@ -203,6 +229,10 @@ class yalib {
 
 	/**
 	 * prepare() の短縮名
+	 *
+	 * @param $query
+	 * @return yalib
+	 * @throws Exception
 	 */
 	public function p($query) {
 		return $this->prepare($query);
@@ -213,10 +243,10 @@ class yalib {
 	 * bindValuesは変数タイプを指定できないので、必要ならこちらを使う
 	 * @param string $key
 	 * @param mixed $value
-	 * @param optional int $type
-	 * @return selfObject
+	 * @param string $type
+	 * @return yalib
 	 */
-	public function bindValue($key, $value, $type = false) {
+	public function bindValue($key, $value, $type = '') {
 		$this->stmt->bindValue($this->_insertColon($key), $value, $type);
 		$this->boundValues[] = array
 		  ('key' => $this->_insertColon($key),
@@ -228,8 +258,10 @@ class yalib {
 	/**
 	 * 配列による複数の変数割り当て
 	 * 変数タイプは指定できないので、bindValueを使用する事
+	 *
 	 * @param array $values
-	 * @return selfObject
+	 * @return yalib
+	 * @throws Exception
 	 */
 	public function bindValues($values) {
 	  if (!is_array($values)) {
@@ -250,6 +282,7 @@ class yalib {
 	/**
 	 * bindValue(), bindValues() などで、キーの先頭が”:”でなければ
 	 * 自動的に付加する
+	 *
 	 * @param string $str
 	 * @return string
 	 */
@@ -263,6 +296,12 @@ class yalib {
 	/**
 	 * bindValues(), bindValue() の別名, 短縮名
 	 * 引数1が配列の場合はbindValues(), そうでなければbindValue()を使用する
+	 *
+	 * @param $arg1
+	 * @param bool $arg2
+	 * @param bool $arg3
+	 * @return yalib
+	 * @throws Exception
 	 */
 	public function bv($arg1, $arg2 = false, $arg3 = false) {
 		if (is_array($arg1)) {
@@ -275,8 +314,9 @@ class yalib {
 	 * クエリのバッファリングを有効,無効化する
 	 * 第一引数にtrueを指定すると有効に、falseを指定すると無効にする
 	 * @link http://www.php.net/manual/ja/pdo.setattribute.php
+	 *
 	 * @param bool $value
-	 * @return selfObject
+	 * @return yalib
 	 */
 	public function setQueryBuffer($value) {
 		$this->setPDOAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, $value);
@@ -285,9 +325,10 @@ class yalib {
 
 	/**
 	 * PDOのATTRを設定する
+	 *
 	 * @param int $attr
 	 * @param mixed $value
-	 * @return selfObject
+	 * @return yalib
 	 */
 	public function setPDOAttribute($attr, $value){
 		$this->pdo->setAttribute($attr, $value);
@@ -297,15 +338,17 @@ class yalib {
 	/**
 	 * 変数割り当て済みのSQLを直接実行し、1行分の結果を返す
 	 * 成功時には配列, 失敗時にはfalseを返す
+	 *
 	 * @param string $query
 	 * @return mixed
+	 * @throws Exception
 	 */
 	public function fetchQuery($query) {
 		try {
 			if ($this->inLoop === false) {
 				$this->prepare($query);
 				if (false === $this->stmt->execute()) {
-					throw new Eception(print_r($this->stmt->errorInfo(), true));
+					throw new Exception(print_r($this->stmt->errorInfo(), true));
 				}
 				$this->inLoop = true;
 			}
@@ -321,14 +364,16 @@ class yalib {
 	/**
 	 * 変数割り当て済みのSQLを直接実行し、すべての結果を返す
 	 * 成功時には配列, 失敗時にはfalseを返す
+	 *
 	 * @param string $query
-	 * @ return mixed
+	 * @return array
+	 * @throws Exception
 	 */
 	public function fetchAllQuery($query) {
 		try {
 			$this->prepare($query);
 			if (false === $this->stmt->execute()) {
-				throw new Eception(print_r($this->stmt->errorInfo(), true));
+				throw new Exception(print_r($this->stmt->errorInfo(), true));
 			}
 			$rows = $this->stmt->fetchAll(PDO::FETCH_ASSOC);
 			return $rows;
@@ -336,11 +381,16 @@ class yalib {
 			throw new Exception($e->getMessage());
 		}
 	}
-	
+
 	/**
 	 * prepare, bindValueなどを実行済みの場合に、1行分の結果を返す
 	 * 成功時には配列, 失敗時にはfalseを返す
+	 *
+	 * @param bool $arg1
+	 * @param bool $arg2
+	 * @param bool $arg3
 	 * @return mixed
+	 * @throws Exception
 	 */
 	public function fetch($arg1 = false, $arg2 = false, $arg3 = false) {
 	  if(false !== $arg1){
@@ -361,9 +411,16 @@ class yalib {
 			throw new Exception($e->getMessage());
 		}
 	}
-	
+
 	/**
 	 * fetch() の短縮名
+	 *
+	 * @see fetch
+	 * @param bool $arg1
+	 * @param bool $arg2
+	 * @param bool $arg3
+	 * @return mixed
+	 * @throws Exception
 	 */
 	public function f($arg1 = false, $arg2 = false, $arg3 = false) {
 	  return $this->fetch($arg1, $arg2, $arg3);
@@ -372,7 +429,12 @@ class yalib {
 	/**
 	 * prepare, bindValueなどを実行済みの場合に、すべての結果を返す
 	 * 成功時には配列, 失敗時にはfalseを返す
+	 *
+	 * @param bool $arg1
+	 * @param bool $arg2
+	 * @param bool $arg3
 	 * @return mixed
+	 * @throws Exception
 	 */
 	public function fetchAll($arg1 = false, $arg2 = false, $arg3 = false) {
 	  if(false !== $arg1){
@@ -389,9 +451,16 @@ class yalib {
 		}
 		return $rows;
 	}
-	
+
 	/**
 	 * fetchAll() の短縮名
+	 *
+	 * @see fetchAll
+	 * @param bool $arg1
+	 * @param bool $arg2
+	 * @param bool $arg3
+	 * @return mixed
+	 * @throws Exception
 	 */
 	public function fa($arg1 = false, $arg2 = false, $arg3 = false) {
 	  return $this->fetchAll($arg1, $arg2, $arg3);
@@ -399,8 +468,10 @@ class yalib {
 
 	/**
 	 * 変数割り当て済みのSQLを直接実行する
+	 *
 	 * @param string $query
-	 * @return selfObject
+	 * @return yalib
+	 * @throws Exception
 	 */
 	public function query($query) {
 		try {
@@ -424,7 +495,12 @@ class yalib {
 	/**
 	 * prepare, bindValueなどを実行済みの場合に、ステートメントを実行する
 	 * 引数は bv() メソッドの引数に準ずる
-	 * @return selfObject
+	 *
+	 * @param bool $arg1
+	 * @param bool $arg2
+	 * @param bool $arg3
+	 * @return yalib
+	 * @throws Exception
 	 */
 	public function execute($arg1 = false, $arg2 = false, $arg3 = false) {
 	  if (false !== $arg1) {
@@ -440,9 +516,16 @@ class yalib {
 		$this->_setBoundSql();
 		return $this;
 	}
-	
+
 	/**
 	 * execute() の短縮名
+	 *
+	 * @see execute
+	 * @param bool $arg1
+	 * @param bool $arg2
+	 * @param bool $arg3
+	 * @return yalib
+	 * @throws Exception
 	 */
 	public function e($arg1 = false, $arg2 = false, $arg3 = false) {
 	  return $this->execute($arg1, $arg2, $arg3);
@@ -450,6 +533,7 @@ class yalib {
 
 	/**
 	 * 直前に実行したクエリの影響行数を返す
+	 *
 	 * @return int
 	 */
 	public function countRows() {
@@ -458,6 +542,7 @@ class yalib {
 
 	/**
 	 * クエリを直接実行し、行数を返す
+	 *
 	 * @param string $query
 	 * @return int
 	 */
@@ -467,6 +552,9 @@ class yalib {
 
 	/**
 	 * countRows() の短縮名
+	 *
+	 * @see countRows
+	 * @return int
 	 */
 	public function c() {
 		return $this->countRows();
@@ -475,6 +563,7 @@ class yalib {
 	/**
 	 * 直前に実行したINSERT文のIDを返す
 	 * 結果が数値ならintに変換, そうでなければそのまま返す
+	 *
 	 * @return mixed
 	 */
 	public function getInsertId() {
@@ -484,6 +573,7 @@ class yalib {
 
 	/**
 	 * INSERT文を直接実行し、IDを返す
+	 *
 	 * @param string $query
 	 * @return mixed
 	 */
@@ -493,6 +583,9 @@ class yalib {
 
 	/**
 	 * getInsertId() の短縮名
+	 *
+	 * @see getInsertId
+	 * @return int
 	 */
 	public function gid() {
 		Return $this->getInsertId();
@@ -500,7 +593,8 @@ class yalib {
 	
 	/**
 	 * トランザクションを開始する
-	 * @return selfObject
+	 *
+	 * @return yalib
 	 */
 	public function begin() {
 		$this->pdo->beginTransaction();
@@ -509,7 +603,8 @@ class yalib {
 
 	/**
 	 * トランザクションを終了し、コミットする
-	 * @return selfObject
+	 *
+	 * @return yalib
 	 */
 	public function commit() {
 		$this->pdo->commit();
@@ -518,7 +613,8 @@ class yalib {
 
 	/**
 	 * トランザクションを終了し、ロールバックする
-	 * @return selfObject
+	 *
+	 * @return yalib
 	 */
 	public function rollBack() {
 		$this->pdo->rollBack();
@@ -529,6 +625,7 @@ class yalib {
 	 * bindValuesによって値がbindされたSQL文を取得する。
 	 * 注意すべきは実際にはSQLでprepare->executeが実装、実行されているので
 	 * bindValuesでbindされる値を置換しているだけ。
+	 *
 	 * @return string
 	 */
 	public function getBoundSQL(){
@@ -549,7 +646,7 @@ class yalib {
 	 * 上記の構文は戻り値が無くなるまで呼ばれるのじゃ無くて、一度だけ呼ばれる
 	 * そうすると二度目に呼ばれた時はLIMIT 1で戻り値が無い状態でfalseが
 	 * 返される。コレは恐らく期待した動作じゃない。
-	 * @return selfObject
+	 * @return yalib
 	 */
 	public function reset(){
 	  $this->stmt = false;
