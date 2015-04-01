@@ -8,6 +8,9 @@
  * 特に戻り値が無くても良いメソッドでは $this を返す。
  * また、可能な限り $this を返せるように務める
  */
+
+namespace Yousan\yalib;
+
 class yalib {
 	private static $instance = array();
 
@@ -45,9 +48,9 @@ class yalib {
 
 	/**
 	 * getInstance() の短縮名
+	 *
 	 * @param string $confname
 	 * @return yalib
-	 * @internal param $
 	 */
 	public static function gi($confname = '') {
 		return self::getInstance($confname);
@@ -167,7 +170,7 @@ class yalib {
 			$dsn = 'mysql:dbname='.$this->conf['schema']
 				.';host='.$this->conf['host'].';port='.$this->conf['port'];
 			try {
-				$this->pdo = new PDO(
+				$this->pdo = new \PDO(
 					$dsn,
 					$this->conf['username'],
 					$this->conf['password']
