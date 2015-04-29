@@ -17,6 +17,7 @@ class yalib {
 	/** @type \PDO */
 	private $pdo = false;
 
+	private $confname = '';
 	private $conf = false;
 
 	/** @var  \PDOStatement */
@@ -113,7 +114,21 @@ class yalib {
 	 * @throws \Exception
 	 */
 	private function _loadConfig($confname = '') {
-		$config = parse_ini_file(dirname(__FILE__).'/config.ini', true);
+		$filenames = [
+			__DIR__.'/config.ini',
+			__FILE__, // sentinel, 番兵
+			];
+		$filename = '';
+		foreach ($filenames as $value) {
+			if (!file_exists($value)) {
+				$filename = $value;
+				break;
+			}
+		}
+		if ($filename == __FILE__) {
+			throw new \Exception('Config file not found.');
+		}
+		$config = parse_ini_file($filename, true);
 		if ($confname && isset($config[$confname])) {
 			foreach ($config[$confname] as $key => $val) {
 				$config[$confname][$key] = trim($val, '\'"');
@@ -121,7 +136,7 @@ class yalib {
 			$this->conf = $config[$confname];
 		}
 		else if ($confname !== false && !isset($config[$confname])) {
-	    throw new \Exception('$confname is not found');
+			throw new \Exception('$confname is not found');
 		}
 		else {
 			$this->conf = $config['default'];
