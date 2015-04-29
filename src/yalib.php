@@ -120,7 +120,7 @@ class yalib {
 			];
 		$filename = '';
 		foreach ($filenames as $value) {
-			if (!file_exists($value)) {
+			if (file_exists($value)) {
 				$filename = $value;
 				break;
 			}
@@ -136,7 +136,7 @@ class yalib {
 			$this->conf = $config[$confname];
 		}
 		else if ($confname !== false && !isset($config[$confname])) {
-			throw new \Exception('$confname is not found');
+			throw new \Exception("confuname[$confname] is not found");
 		}
 		else {
 			$this->conf = $config['default'];
