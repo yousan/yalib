@@ -41,10 +41,14 @@ class yalib {
 	 */
 	public static function getInstance($confname = ''){
 		$confname = $confname ? $confname : 'default';
-		if (!isset(yalib::$instance[$confname])) {
-			self::$instance[$confname] = new yalib($confname, 'confname');
+		if (is_array($confname)) {
+			return self::getInstanceByArray($confname);
+		} else {
+			if (!isset(yalib::$instance[$confname])) {
+				self::$instance[$confname] = new yalib($confname, 'confname');
+			}
+			return self::$instance[$confname];
 		}
-		return self::$instance[$confname];
 	}
 
 	/**
@@ -66,6 +70,19 @@ class yalib {
 		$keyname = 'dsn_'.md5($dsn);
 		if (!isset(yalib::$instance[$keyname])) {
 			self::$instance[$keyname] = new yalib($dsn, 'dsn');
+		}
+		return self::$instance[$keyname];
+	}
+
+	/**
+	 * Array表記によるシングルトンインスタンス生成
+	 * @param string $dsn
+	 * @return yalib
+	 */
+	public static function getInstanceByArray($array) {
+		$keyname = 'array_'.md5(serialize($array));
+		if (!isset(yalib::$instance[$keyname])) {
+			self::$instance[$keyname] = new yalib($array, 'array');
 		}
 		return self::$instance[$keyname];
 	}

@@ -1,11 +1,24 @@
 <?php
-include('yalib.php');
 
-$sql = 'select * from wp_posts where post_status = :post_status;';
-//$h = yalib::gi()->p($sql);
-while($ret = yalib::gi()->p($sql)->f('post_status', 'publish')){
-  //while($ret = $h->bv('post_status', 'publish')->f()){
-  var_dump($ret['ID']);
+include('../src/autoload.php');
+
+global $yalib;
+$yalib = yalib::gi('test');
+
+/**
+ * Initialize with test data
+ */
+function init_testdata() {
+  global $yalib;
+  $sql = 'CREATE TABLE `yalib_test_users` (
+  `id` INT NOT NULL,
+  `username` VARCHAR(45) NULL,
+  `password` VARCHAR(45) NULL,
+  `modified` DATETIME NULL,
+  `created` DATETIME NULL,
+  PRIMARY KEY (`id`));';
+
+  $yalib->e($sql);
 }
-var_dump(yalib::gi()->getBoundSql());
+
 ?>
